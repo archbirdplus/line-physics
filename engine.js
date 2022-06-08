@@ -181,40 +181,6 @@ var otherSketchProc = function(processingInstance) {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     HitLine.prototype.directlyNormal = function(pp) {
         // rotate point p about m "by" n
         // such that n lays horizontal (0, 0) to (mag, 0)
@@ -224,6 +190,8 @@ var otherSketchProc = function(processingInstance) {
         let rx = p.x*nh.x + p.y*nh.y;
         return 0 <= rx && rx <= d.mag()
     }
+
+    // OBSOLETE?
     // more like positive intersect
     HitLine.prototype.signedDistance = function(pp) {
         if(DEBUG) {
@@ -243,13 +211,26 @@ var otherSketchProc = function(processingInstance) {
             return min(PVector.sub(pp, this.m).mag(), PVector.sub(pp, this.n).mag())
         }
     };
-    HitLine.prototype.nearestPoint = function(p) {
-        var s = this.slope()
-        var x = abs(s) === 1/0 ? this.m.x : (this.m.x * s*s + p.y*s + p.x - this.m.y*s)/(1 + s*s)
-        var y = abs(s) === 1/0 ? p.y : (s*s*p.y + s*p.x - s*this.m.x + this.m.y)/(1 + s*s) // idk how s = 0 works
-        // idk how to prove the p.y in the definition of y but it feels correct
-        return new PVector(x, y)
+
+    HitLine.prototype.nearestPoint = function(pp) {
+        let d = PVector.sub(this.n, this.m)
+        let nh = d.normalized()
+        let p = PVector.sub(pp, this.m)
+        // rotate, constrain x, flatten y, and unrotate
+        // constrain x: x on line ; constrain y: y on line
+        let rx = constrain(p.x*nh.x + p.y*nh.y, 0, d.mag())
+        let ry = 0
+        let sx = rx*nh.x - ry*nh.y
+        let sy = rx*nh.y + ry*nh.x
+        return PVector.add(new PVector(sx, sy), this.m)
+        //return new PVector(sx, sy)
     }
+
+    HitLine.prototype.unsignedDistance = function(p) {
+        var nearest = this.nearestPoint(p)
+        return PVector.sub(nearest, p).mag()
+    }
+
     HitLine.prototype.render = function() {
         line(this.m.x, this.m.y, this.n.x, this.n.y);
     }

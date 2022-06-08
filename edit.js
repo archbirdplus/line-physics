@@ -22,19 +22,33 @@ let player = new Player()
 var pause = false
 
 var hold = { }
+// a/A
 // key: 65, shifted: false, start: PVector? // on provide end no hold
 // key: 65, shifted: true, start: PVector
 
+// x/X
+// key: 88, shifted: false
+// key: 88, shifted: true
+
 mouseClicked = function() {
     var mouse = new PVector(mouseX, mouseY)
-    if(hold.key === 65) { // a
+    switch(hold.key) {
+    case 65:
         if(hold.start === undefined) { hold.start = mouse }
         else {
-            let line = new HitLine(hold.start.x, hold.start.y, mouse.x, mouse.y)
-            world.lines.push(line)
+            let l = new HitLine(hold.start.x, hold.start.y, mouse.x, mouse.y)
+            world.lines.push(l)
             if(hold.shifted) { hold.start = mouse }
             else { hold = { } }
         }
+        break
+    case 88:
+        if(world.lines.length === 0) { break }
+        //var index = world.lines.map((x, n) => { d: x.unsignedDistance(p), i: n })
+        var index = world.lines.map(function(x, n) { return { d: x.unsignedDistance(mouse), i: n } })
+            .reduce((a, b) => a.d < b.d ? a : b).i
+        world.lines.splice(index, 1)
+        if(hold.shifted) { } else { hold = { } }
     }
 }
 
@@ -46,6 +60,9 @@ keyPressed = function() {
     //}
     if(keyCode === 65) { // a
         hold = { key: 65, shifted: keys[SHIFT], start: undefined }
+    }
+    if(keyCode === 88) { // a
+        hold = { key: 88, shifted: keys[SHIFT] }
     }
     if(key.key === "Escape") { // esc
         hold = { }
@@ -80,17 +97,42 @@ draw = function() {
     strokeWeight(1)
     var curSize = 5
     //if(pselect) { ellipse(pselect.x, pselect.y, curSize*2, curSize*2) }
-    if(hold.key === 65) {
+
+    switch(hold.key) {
+    case 65:
         var start = hold.start || mouse
         noFill()
         stroke(0, 0, 255)
         ellipse(start.x, start.y, 10, 10)
         line(start.x, start.y, mouseX, mouseY)
+        var center = PVector.mult(PVector.add(mouse, start), 1/2)
+        var diff = PVector.sub(mouse, start)
+        var normal = PVector.mult(new PVector(diff.y, -diff.x).normalized(), 30)
+        line(center.x, center.y, center.x + normal.x, center.y + normal.y)
+        break
+    case 88:
+        if(world.lines.length === 0) { break }
+        //var index = world.lines.map(x, n => { d: x.unsignedDistance(p), i: n })
+        var index = world.lines.map(function(x, n) { return { d: x.unsignedDistance(mouse), i: n } })
+            .reduce((a, b) => a.d < b.d ? a : b).i
+        var l = world.lines[index]
+        stroke(255, 0, 0)
+        var center = PVector.mult(PVector.add(l.n, l.m), 1/2)
+        var diff = PVector.sub(l.n, l.m)
+        var normal = PVector.mult(new PVector(diff.y, -diff.x).normalized(), 30)
+        line(center.x, center.y, center.x + normal.x, center.y + normal.y)
+        line(l.m.x, l.m.y, l.n.x, l.n.y)
     }
-    var status = { 65: (hold.shifted === true) ? "Append" : "append" }[hold.key]
-    fill(0)
-    textAlign(LEFT, TOP)
-    text(status, 10, 10)
+
+    var status = { 65: (hold.shifted === true) ? "Append" : "append", 88: (hold.shifted === true) ? "Delete" : "delete" }[hold.key]
+    if(status) {
+        fill(0)
+        textAlign(LEFT, TOP)
+        text(status, 10, 10)
+    }
+    stroke(0, 255, 0)
+    //world.lines.filter(l => l.directlyNormal(mouse)).forEach(l => l.render())
+    //world.lines.forEach(function(l) { let n = l.nearestPoint(mouse); ellipse(n.x, n.y, 10, 10) })
     //line(mouseX-curSize, mouseY-curSize, mouseX+curSize, mouseY+curSize)
     //line(mouseX-curSize, mouseY+curSize, mouseX+curSize, mouseY-curSize)
 
