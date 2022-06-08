@@ -4,6 +4,7 @@ function Player() {
     this.v = new PVector(0, 0)
     this.r = 20
     this.contact = false
+    this.jumpNormal = undefined
     this.hitBall = new HitBall(this.r, this.p, this.p)
 }
 
@@ -30,16 +31,24 @@ var playerProc = function(processingInstance) {
         var pp = this.p.get()
         if(keys[LEFT]) { this.v.x -= 0.1 }
         if(keys[RIGHT]) { this.v.x += 0.1 }
-        if(keys[UP] && (this.contact)) {
-            this.v.y = min(this.v.y, 0) - 2
-            this.contact = false
+        if(keys[UP] && this.jumpNormal !== undefined) {
+            //this.v.add(PVector.mult(this.jumpNormal, 3))
+            if(PVector.dot(this.v, this.jumpNormal) < 0) {
+                this.v.add(PVector.mult(this.jumpNormal, this.v.mag()+3))
+            } else {
+                this.v.add(PVector.mult(this.jumpNormal, 3))
+            }
+            this.jumpNormal = undefined
         }
-        this.v.add(new PVector(0, 0.03))
+        this.v.add(new PVector(0, 0.1))
+        let c = 0.47
+        let v = this.v.mag()
+        let m = 10000
+        this.v.sub(PVector.mult(this.v, c*v/m)) // F_air = c v v
         this.p.add(this.v)
         this.hitBall = new HitBall(this.r, pp, this.p)
     }
     Player.prototype.collide = function(col) {
-        this.contact = true
         let b = this.hitBall
         this.p = PVector.add(PVector.mult(PVector.sub(b.p, b.o), col.t), b.o)
         let normal = PVector.sub(this.p, col.p).normalized()
@@ -47,7 +56,8 @@ var playerProc = function(processingInstance) {
         let e = 0.01;
         this.p.add(PVector.mult(normal, e))
         this.v.add(PVector.mult(normal, speed))
-        newContact = true;
+        //this.contact = normal.y < sin(-60*Math.PI/180)
+        this.jumpNormal = normal
     }
     Player.prototype.noCollide = function() { }
     Player.prototype.render = function() {
