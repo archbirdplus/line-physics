@@ -49,6 +49,9 @@ mouseClicked = function() {
 
 keyPressed = function() {
     keys[keyCode] = true;
+    if(keyCode === 82) { // r
+        player = new Player()
+    }
     if(keyCode === 68) { DEBUG = !DEBUG; } // d
     //if(keyCode === 78 && pselect) { // n
         //world.lines.push(new HitLine(pselect.x, pselect.y, mouseX, mouseY))
@@ -60,13 +63,13 @@ keyPressed = function() {
         hold = { key: 88, shifted: keys[SHIFT] }
     }
     if(keyCode === 187) { // + (zoom in)
-        camera.scale *= 1.2
+        camera.uScale *= 1.2
     }
     if(keyCode === 189) { // - (zoom out)
-        camera.scale /= 1.2
+        camera.uScale /= 1.2
     }
     if(keyCode === 48) { // 0
-        camera.scale = 1
+        camera.uScale = 1
     }
     if(keyCode === 80) { // p
         console.log("[" + world.lines.map(l => "new HitLine(" + l.m.x + "," + l.m.y + "," + l.n.x + "," + l.n.y + ")").join(",") + "]")
@@ -87,22 +90,19 @@ draw = function() {
         gameMouse = world.lines.flatMap(l => [l.m, l.n]).reduce((a, b) => dist(a.x, a.y, gameMouse.x, gameMouse.y) < dist(b.x, b.y, gameMouse.x, gameMouse.y) ? a : b)
     }
 
-    background(255);
-
-    if(!pause) {
-        player.tick()
-        let b = player.hitBall
-        let col = world.collision(b)
-        if(col.t !== undefined) { player.collide(col) }
-        else { player.noCollide() }
-    }
+    background(255)
 
     camera.follow(player.p)
     camera.pushMatrix()
 
+    if(!pause) {
+        player.tick()
+        world.nBounce(player)
+    }
+
     stroke(0)
     strokeWeight(2/sqrt(camera.scale))
-    world.render()
+    world.render(camera)
 
     strokeWeight(1)
     player.render()

@@ -1,5 +1,6 @@
 
 var DEBUG = false;
+var NBOUNCE_MAX = 5;
 
 // radius, first position, position
 function HitBall(r, o, p) {
@@ -217,7 +218,6 @@ var otherSketchProc = function(processingInstance) {
         let nh = d.normalized()
         let p = PVector.sub(pp, this.m)
         // rotate, constrain x, flatten y, and unrotate
-        // constrain x: x on line ; constrain y: y on line
         let rx = constrain(p.x*nh.x + p.y*nh.y, 0, d.mag())
         let ry = 0
         let sx = rx*nh.x - ry*nh.y
@@ -235,17 +235,68 @@ var otherSketchProc = function(processingInstance) {
         line(this.m.x, this.m.y, this.n.x, this.n.y);
     }
 
-    World.prototype.render = function() {
-        this.lines.forEach(l => l.render())
+    World.prototype.render = function(cam) {
+        var dimensions = PVector.mult(new PVector(width, height), 1/cam.scale/2)
+        var low = PVector.sub(cam.p, dimensions)
+        var high = PVector.add(cam.p, dimensions)
+        // this filter saves on render time
+        this.lines
+            .filter(l => 
+                (l.m.x > low.x || l.n.x > low.x) &&
+                (l.m.x < high.x || l.n.x < high.x) &&
+                (l.m.y > low.y || l.n.y > low.y) &&
+                (l.m.y < high.y || l.n.y < high.y))
+            .forEach(l => l.render())
     }
 
     World.prototype.collision = function(b) {
-        var cols = this.lines.map(l => l.collision(b))
+        let e = 0.1
+        var rsq = new PVector(b.r+e, b.r+e)
+        let bmin = new PVector(min(b.o.x, b.p.x), min(b.o.y, b.p.y))
+        let bmax = new PVector(max(b.o.x, b.p.x), max(b.o.y, b.p.y))
+        var low = PVector.sub(bmin, rsq)
+        var high = PVector.add(bmax, rsq)
+        var cols = this.lines
+            .filter(l => 
+                (l.m.x > low.x || l.n.x > low.x) &&
+                (l.m.x < high.x || l.n.x < high.x) &&
+                (l.m.y > low.y || l.n.y > low.y) &&
+                (l.m.y < high.y || l.n.y < high.y))
+            .map(l => l.collision(b))
             //.min((a, b) => a.t < b.t)
             .filter(col => col.t != undefined)
-        return cols.length === 0 ? { } : cols.reduce(function (a, b) {
-            return ( a.t > b.t ? b : a );
+        if (cols.length !== 0) {
+            //console.log(cols.length + " collisions detected! filtering one")
+            for(var i = 0; i < cols.length; i++) {
+                //console.log("t " + cols[i].t + " d " + PVector.sub(cols[i].p, b.o).mag())
+            }
+        }
+        return cols.length === 0 ? { } : cols.reduce(function (c, d) {
+            //return (dist(c.p.x, c.p.y, b.o.x, b.o.y) < dist(d.p.x, d.p.y, b.o.x, b.o.y) ? c : d)
+            return ( c.t > d.t ? d : c );
         });
+    }
+
+    World.prototype.nBounce = function(p) {
+        var n = 0
+        strokeWeight(1)
+        while(n < NBOUNCE_MAX) {
+            let b = p.hitBall
+            stroke(255, 0, 0)
+            line(b.o.x, b.o.y, b.p.x, b.p.y)
+            let col = this.collision(b)
+            if(col.t !== undefined) {
+                p.collide(col)
+                n += 1
+            } else {
+                break
+            }
+        }
+        if(n == NBOUNCE_MAX) { 
+            if(this.collision(p.hitBall).t !== undefined) {
+                p.haltCollide()
+            }
+        }
     }
 
 }}

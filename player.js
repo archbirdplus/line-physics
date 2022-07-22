@@ -3,7 +3,6 @@ function Player() {
     this.p = new PVector(200, 0)
     this.v = new PVector(0, 0)
     this.r = 20
-    this.contact = false
     this.jumpNormal = undefined
     this.hitBall = new HitBall(this.r, this.p, this.p)
 }
@@ -23,21 +22,21 @@ var playerProc = function(processingInstance) {
 
     Player.prototype.tick = function() {
         if(keys[82]) { // r
-            x = 200;
-            y = 0;
-            vx = 0;
-            vy = 0;
+            this.x = 200;
+            this.y = 0;
+            this.vx = 0;
+            this.vy = 0;
         }
         var pp = this.p.get()
         if(keys[LEFT]) { this.v.x -= 0.1 }
         if(keys[RIGHT]) { this.v.x += 0.1 }
         if(keys[UP] && this.jumpNormal !== undefined) {
             //this.v.add(PVector.mult(this.jumpNormal, 3))
-            if(PVector.dot(this.v, this.jumpNormal) < 0) {
+            //if(PVector.dot(this.v, this.jumpNormal) < 0) {
                 this.v.add(PVector.mult(this.jumpNormal, this.v.mag()+3))
-            } else {
-                this.v.add(PVector.mult(this.jumpNormal, 3))
-            }
+            //} else {
+                //this.v.add(PVector.mult(this.jumpNormal, 3))
+            //}
             this.jumpNormal = undefined
         }
         this.v.add(new PVector(0, 0.1))
@@ -50,20 +49,19 @@ var playerProc = function(processingInstance) {
     }
     Player.prototype.collide = function(col) {
         let b = this.hitBall
-        this.p = PVector.add(PVector.mult(PVector.sub(b.p, b.o), col.t), b.o)
+        let pp = PVector.add(PVector.mult(PVector.sub(b.p, b.o), max(col.t, 0)), b.o) // point of bounce
+        this.p = pp.get()
         let normal = PVector.sub(this.p, col.p).normalized()
         var speed = -PVector.dot(this.v.normalized(), normal) * this.v.mag() * 1.5;
-        let e = 0.01;
-        this.p.add(PVector.mult(normal, e))
         this.v.add(PVector.mult(normal, speed))
-        //this.contact = normal.y < sin(-60*Math.PI/180)
+        this.p.add(PVector.mult(this.v, 1-col.t))
         this.jumpNormal = normal
+        this.hitBall = new HitBall(this.r, pp, this.p)
     }
-    Player.prototype.noCollide = function() { }
+    Player.prototype.haltCollide = function() { this.p = this.hitBall.o }
     Player.prototype.render = function() {
         strokeWeight(2);
         stroke(0)
-        if(DEBUG) { if(this.contact) { stroke(255, 0, 255) } }
         noFill();
         ellipse(this.p.x, this.p.y, this.r*2, this.r*2);
         if(DEBUG) {

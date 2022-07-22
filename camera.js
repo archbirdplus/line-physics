@@ -7,13 +7,20 @@ var cameraProc = function(processingInstance) {
     Camera = function(p) {
         this.p = p
         this.v = new PVector(0, 0)
+
+        this.uScale = 1
+        this.fScale = 1
         this.scale = 1
     }
 
     Camera.prototype.follow = function(p) {
         this.v.add(PVector.mult(PVector.sub(p, this.p), 0.01))
-        this.v.mult(0.8)
+        this.v.mult(0.9)
         this.p.add(this.v)
+
+        let a = 0.5
+        this.fScale = this.fScale*a + (1-a)*(100/(PVector.sub(p, this.p).mag()))
+        this.scale = min(this.uScale, this.fScale)
     }
 
     Camera.prototype.pushMatrix = function() {
